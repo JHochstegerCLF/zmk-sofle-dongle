@@ -45,7 +45,7 @@
         diode-direction = "col2row";
     };
     
-    vcc_gpios: vcc_gpios {
+    ext_pwr_hardware: ext-power {
         compatible = "zmk,ext-power-generic";
         control-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
         init-delay-ms = <50>;
