@@ -11,7 +11,9 @@
     chosen {
         zmk,kscan = &mock_kscan;
         zephyr,display = &oled;
+        zephyr,console = &cdc_acm_uart;
     };
+
     mock_kscan: kscan_1 {
         compatible = "zmk,kscan-mock";
         columns = <0>;
