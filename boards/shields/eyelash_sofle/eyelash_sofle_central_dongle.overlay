@@ -14,14 +14,6 @@
         zephyr,console = &cdc_acm_uart;
     };
 
-    vbox: usb_cdc_acm {
-        compatible = "nordic,nrf-usbd";
-        status = "okay";
-        cdc_acm_uart: cdc_acm_uart {
-            compatible = "zephyr,cdc-acm-uart";
-        };
-    };
-
     mock_kscan: kscan_1 {
         compatible = "zmk,kscan-mock";
         columns = <0>;
