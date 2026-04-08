@@ -26,10 +26,6 @@
         ;
 };
 
-&left_encoder {
-    status = "okay";
-};
-
 nice_view_spi: &spi0 {
     compatible = "nordic,nrf-spim";
     pinctrl-0 = <&spi0_default>;
