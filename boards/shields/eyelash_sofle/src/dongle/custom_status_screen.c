@@ -10,21 +10,14 @@ static struct zmk_widget_layer_status layer_widget;
 static lv_obj_t *output_label;
 
 static void update_output_status(lv_timer_t *timer) {
-    // Attempting to use a more common ZMK endpoint function
-    // If this still fails, we will revert to a different dynamic component
-    enum zmk_endpoint endpoint = zmk_endpoints_selected();
+    // Show the raw integer value to debug what ZMK is returning
+    int endpoint = (int)zmk_endpoints_selected();
     
-    switch (endpoint) {
-        case ZMK_ENDPOINT_USB:
-            lv_label_set_text(output_label, "Output: USB");
-            break;
-        case ZMK_ENDPOINT_BLE:
-            lv_label_set_text(output_label, "Output: BLE");
-            break;
-        default:
-            lv_label_set_text(output_label, "Output: ???");
-            break;
-    }
+    char buf[20];
+    snprintf(buf, sizeof(buf), "Endp Raw: %d", endpoint);
+    lv_label_set_text(output_label, buf);
+    
+    LOG_INF("Endpoint raw value: %d", endpoint);
 }
 
 lv_obj_t *zmk_display_status_screen() {
@@ -35,7 +28,7 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
-    // 1. Output Label
+    // 1. Output Label (Raw Debug)
     output_label = lv_label_create(screen);
     lv_obj_set_style_text_color(output_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(output_label, &lv_font_montserrat_12, 0);
