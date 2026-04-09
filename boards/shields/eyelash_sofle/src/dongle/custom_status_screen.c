@@ -21,7 +21,7 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *bat_label = lv_label_create(screen);
     lv_label_set_text(bat_label, "BAT");
     lv_obj_set_style_text_color(bat_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(bat_label, &lv_font_montserrat_10, 0);
+    lv_obj_set_style_text_font(bat_label, &lv_font_montserrat_12, 0);
     lv_obj_align_to(bat_label, zmk_widget_battery_status_obj(&battery_widget), LV_ALIGN_OUT_LEFT_MID, -2, 0);
 
     // 2. Add a static title for the layer
