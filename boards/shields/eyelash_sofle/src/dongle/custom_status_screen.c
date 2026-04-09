@@ -1,10 +1,10 @@
 #include <zmk/display/status_screen.h>
 #include <zmk/display/widgets/layer_status.h>
-#include <zmk/display/widgets/peripheral_status.h>
+#include <zmk/display/widgets/battery_status.h>
 #include <lvgl.h>
 
 static struct zmk_widget_layer_status layer_widget;
-static struct zmk_widget_peripheral_status peripheral_widget;
+static struct zmk_widget_battery_status battery_widget;
 
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen;
@@ -14,10 +14,9 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
-    // 1. Add the Peripheral Status widget at the top
-    // This shows if the left and right halves are connected and their battery
-    zmk_widget_peripheral_status_init(&peripheral_widget, screen);
-    lv_obj_align(zmk_widget_peripheral_status_obj(&peripheral_widget), LV_ALIGN_TOP_MID, 0, 5);
+    // 1. Add the Battery Status widget (typically shows dongle battery)
+    zmk_widget_battery_status_init(&battery_widget, screen);
+    lv_obj_align(zmk_widget_battery_status_obj(&battery_widget), LV_ALIGN_TOP_RIGHT, -5, 5);
 
     // 2. Add a static title for the layer
     lv_obj_t *header = lv_label_create(screen);
