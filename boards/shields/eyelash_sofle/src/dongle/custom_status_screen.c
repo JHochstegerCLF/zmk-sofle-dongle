@@ -1,11 +1,15 @@
 #include <zmk/display/status_screen.h>
 #include <zmk/display/widgets/layer_status.h>
 #include <zmk/display/widgets/output_status.h>
+#include <zmk/display/widgets/battery_status.h>
+#include <zmk/display/widgets/peripheral_status.h>
 #include <zmk/ble.h>
 #include <lvgl.h>
 
 static struct zmk_widget_layer_status layer_widget;
 static struct zmk_widget_output_status output_widget;
+static struct zmk_widget_battery_status battery_widget;
+static struct zmk_widget_peripheral_status peripheral_widget;
 static lv_obj_t *status_label;
 
 static void update_status(lv_timer_t *timer) {
@@ -23,30 +27,34 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
-    // 1. Output Status Widget (Icons)
+    // 1. Dongle Battery (Top Left)
+    zmk_widget_battery_status_init(&battery_widget, screen);
+    lv_obj_set_style_text_color(zmk_widget_battery_status_obj(&battery_widget), lv_color_white(), 0);
+    lv_obj_align(zmk_widget_battery_status_obj(&battery_widget), LV_ALIGN_TOP_LEFT, 5, 5);
+
+    // 2. Output Status (Top Right)
     zmk_widget_output_status_init(&output_widget, screen);
     lv_obj_set_style_text_color(zmk_widget_output_status_obj(&output_widget), lv_color_white(), 0);
-    lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_MID, 0, 5);
+    lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_RIGHT, -5, 5);
 
-    // 2. BLE Profile Number
+    // 3. Peripheral Status (Center Top - Left/Right Halves)
+    zmk_widget_peripheral_status_init(&peripheral_widget, screen);
+    lv_obj_set_style_text_color(zmk_widget_peripheral_status_obj(&peripheral_widget), lv_color_white(), 0);
+    lv_obj_align(zmk_widget_peripheral_status_obj(&peripheral_widget), LV_ALIGN_TOP_MID, 0, 5);
+
+    // 4. BLE Profile Number
     status_label = lv_label_create(screen);
     lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(status_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(status_label, LV_ALIGN_TOP_MID, 0, 20);
+    lv_obj_align(status_label, LV_ALIGN_CENTER, 0, -10);
     
     update_status(NULL);
     lv_timer_create(update_status, 1000, NULL);
 
-    // 3. Layer Title
-    lv_obj_t *header = lv_label_create(screen);
-    lv_label_set_text(header, "LAYER:");
-    lv_obj_set_style_text_color(header, lv_color_white(), 0);
-    lv_obj_align(header, LV_ALIGN_CENTER, 0, 0);
-
-    // 4. Layer Status Widget
+    // 5. Layer Status Widget (Bottom)
     zmk_widget_layer_status_init(&layer_widget, screen);
     lv_obj_set_style_text_color(zmk_widget_layer_status_obj(&layer_widget), lv_color_white(), 0);
-    lv_obj_align(zmk_widget_layer_status_obj(&layer_widget), LV_ALIGN_CENTER, 0, 15);
+    lv_obj_align(zmk_widget_layer_status_obj(&layer_widget), LV_ALIGN_CENTER, 0, 10);
 
     return screen;
 }
