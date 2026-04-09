@@ -10,16 +10,20 @@ static struct zmk_widget_layer_status layer_widget;
 static lv_obj_t *output_label;
 
 static void update_output_status(lv_timer_t *timer) {
-    // In ZMK v0.3.0, zmk_endpoints_get_active_endpoint returns an int/enum
-    // We use a safe check here. 0 is usually USB, 1 is BLE.
-    int endpoint = (int)zmk_endpoints_get_active_endpoint();
+    // Attempting to use a more common ZMK endpoint function
+    // If this still fails, we will revert to a different dynamic component
+    enum zmk_endpoint endpoint = zmk_endpoints_selected();
     
-    if (endpoint == 0) { // ZMK_ENDPOINT_USB
-        lv_label_set_text(output_label, "Output: USB");
-    } else if (endpoint == 1) { // ZMK_ENDPOINT_BLE
-        lv_label_set_text(output_label, "Output: BLE");
-    } else {
-        lv_label_set_text(output_label, "Output: Unknown");
+    switch (endpoint) {
+        case ZMK_ENDPOINT_USB:
+            lv_label_set_text(output_label, "Output: USB");
+            break;
+        case ZMK_ENDPOINT_BLE:
+            lv_label_set_text(output_label, "Output: BLE");
+            break;
+        default:
+            lv_label_set_text(output_label, "Output: ???");
+            break;
     }
 }
 
@@ -31,16 +35,13 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
-    // 1. Custom Dynamic Output Label (Text instead of icons)
+    // 1. Output Label
     output_label = lv_label_create(screen);
     lv_obj_set_style_text_color(output_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(output_label, &lv_font_montserrat_12, 0);
     lv_obj_align(output_label, LV_ALIGN_TOP_MID, 0, 5);
     
-    // Initial update
     update_output_status(NULL);
-    
-    // Update every 1 second
     lv_timer_create(update_output_status, 1000, NULL);
 
     // 2. Layer Title
