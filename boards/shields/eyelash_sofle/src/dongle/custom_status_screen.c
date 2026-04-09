@@ -10,17 +10,16 @@ static struct zmk_widget_layer_status layer_widget;
 static lv_obj_t *output_label;
 
 static void update_output_status(lv_timer_t *timer) {
-    enum zmk_endpoint endpoint = zmk_endpoints_get_active_endpoint();
-    switch (endpoint) {
-        case ZMK_ENDPOINT_USB:
-            lv_label_set_text(output_label, "Output: USB");
-            break;
-        case ZMK_ENDPOINT_BLE:
-            lv_label_set_text(output_label, "Output: BLE");
-            break;
-        default:
-            lv_label_set_text(output_label, "Output: None");
-            break;
+    // In ZMK v0.3.0, zmk_endpoints_get_active_endpoint returns an int/enum
+    // We use a safe check here. 0 is usually USB, 1 is BLE.
+    int endpoint = (int)zmk_endpoints_get_active_endpoint();
+    
+    if (endpoint == 0) { // ZMK_ENDPOINT_USB
+        lv_label_set_text(output_label, "Output: USB");
+    } else if (endpoint == 1) { // ZMK_ENDPOINT_BLE
+        lv_label_set_text(output_label, "Output: BLE");
+    } else {
+        lv_label_set_text(output_label, "Output: Unknown");
     }
 }
 
