@@ -2,14 +2,12 @@
 #include <zmk/display/widgets/layer_status.h>
 #include <zmk/display/widgets/output_status.h>
 #include <zmk/display/widgets/battery_status.h>
-#include <zmk/display/widgets/peripheral_status.h>
 #include <zmk/ble.h>
 #include <lvgl.h>
 
 static struct zmk_widget_layer_status layer_widget;
 static struct zmk_widget_output_status output_widget;
 static struct zmk_widget_battery_status battery_widget;
-static struct zmk_widget_peripheral_status peripheral_widget;
 static lv_obj_t *status_label;
 
 static void update_status(lv_timer_t *timer) {
@@ -37,12 +35,7 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_text_color(zmk_widget_output_status_obj(&output_widget), lv_color_white(), 0);
     lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_RIGHT, -5, 5);
 
-    // 3. Peripheral Status (Center Top - Left/Right Halves)
-    zmk_widget_peripheral_status_init(&peripheral_widget, screen);
-    lv_obj_set_style_text_color(zmk_widget_peripheral_status_obj(&peripheral_widget), lv_color_white(), 0);
-    lv_obj_align(zmk_widget_peripheral_status_obj(&peripheral_widget), LV_ALIGN_TOP_MID, 0, 5);
-
-    // 4. BLE Profile Number
+    // 3. BLE Profile Number (Center)
     status_label = lv_label_create(screen);
     lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(status_label, &lv_font_montserrat_12, 0);
@@ -51,7 +44,7 @@ lv_obj_t *zmk_display_status_screen() {
     update_status(NULL);
     lv_timer_create(update_status, 1000, NULL);
 
-    // 5. Layer Status Widget (Bottom)
+    // 4. Layer Status Widget (Bottom)
     zmk_widget_layer_status_init(&layer_widget, screen);
     lv_obj_set_style_text_color(zmk_widget_layer_status_obj(&layer_widget), lv_color_white(), 0);
     lv_obj_align(zmk_widget_layer_status_obj(&layer_widget), LV_ALIGN_CENTER, 0, 10);
