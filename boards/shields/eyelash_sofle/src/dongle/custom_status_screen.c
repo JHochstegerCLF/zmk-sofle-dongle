@@ -11,6 +11,7 @@ static uint32_t counter_val = 0;
 
 static void update_counter(lv_timer_t *timer) {
     char buf[16];
+    LOG_INF("Updating counter to %u", counter_val);
     snprintf(buf, sizeof(buf), "Count: %u", counter_val++);
     lv_label_set_text(counter_label, buf);
 }
