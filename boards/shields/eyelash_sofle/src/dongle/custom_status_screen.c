@@ -16,6 +16,7 @@ lv_obj_t *zmk_display_status_screen() {
 
     // 1. Add the Output Status widget (shows USB/Bluetooth profile)
     zmk_widget_output_status_init(&output_widget, screen);
+    lv_obj_set_style_text_color(zmk_widget_output_status_obj(&output_widget), lv_color_white(), 0);
     lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_MID, 0, 5);
 
     // 2. Add a static title for the layer
