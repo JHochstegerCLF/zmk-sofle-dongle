@@ -26,14 +26,12 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
     #define SOURCE_OFFSET 0
 #endif
 
-// Sofle usually has 2 peripherals
+// Sofle has 2 peripherals
 #ifndef ZMK_SPLIT_BLE_PERIPHERAL_COUNT
 #  define ZMK_SPLIT_BLE_PERIPHERAL_COUNT 2
 #endif
 
-// Adjusting BUFFER_SIZE for LVGL 8.3 (standard ZMK)
-// If you are on LVGL 9, the original code's macros would be needed.
-#define BUFFER_SIZE LV_CANVAS_BUF_SIZE_TRUE_COLOR(5, 8)
+#define MAX_BATTERY_SOURCES (ZMK_SPLIT_BLE_PERIPHERAL_COUNT + SOURCE_OFFSET)
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -46,17 +44,19 @@ struct battery_state {
 struct battery_object {
     lv_obj_t *symbol;
     lv_obj_t *label;
-} battery_objects[ZMK_SPLIT_BLE_PERIPHERAL_COUNT + SOURCE_OFFSET];
+} battery_objects[MAX_BATTERY_SOURCES];
     
-static lv_color_t battery_image_buffer[ZMK_SPLIT_BLE_PERIPHERAL_COUNT + SOURCE_OFFSET][BUFFER_SIZE];
+// Hardcoded buffer size for 5x8 image to avoid "variably modified" error
+// LVGL 8.3 buffer size for 5x8 true color
+static lv_color_t battery_image_buffer[MAX_BATTERY_SOURCES][40];
 
 static void draw_battery(lv_obj_t *canvas, uint8_t level, bool usb_present) {
     lv_canvas_fill_bg(canvas, lv_color_black(), LV_OPA_COVER);
     
-    // LVGL 8.3 drawing style
     lv_draw_rect_dsc_t rect_fill_dsc;
     lv_draw_rect_dsc_init(&rect_fill_dsc);
     rect_fill_dsc.bg_color = lv_color_white();
+    rect_fill_dsc.bg_opa = LV_OPA_COVER;
 
     if (usb_present) {
         rect_fill_dsc.bg_opa = LV_OPA_TRANSP;
@@ -64,39 +64,28 @@ static void draw_battery(lv_obj_t *canvas, uint8_t level, bool usb_present) {
         rect_fill_dsc.border_width = 1;
     }
 
+    // Top "nib" of the battery
     lv_canvas_set_px(canvas, 0, 0, lv_color_white());
     lv_canvas_set_px(canvas, 4, 0, lv_color_white());
 
-    bool rect_draw = true;
-    lv_area_t rect_coords;
-    
-    if (level <= 10 || usb_present) {
-        rect_coords = (lv_area_t){.x1 = 1, .y1 = 2, .x2 = 3, .y2 = 6};
-    } else if (level <= 30) {
-        rect_coords = (lv_area_t){.x1 = 1, .y1 = 2, .x2 = 3, .y2 = 5};
-    } else if (level <= 50) {
-        rect_coords = (lv_area_t){.x1 = 1, .y1 = 2, .x2 = 3, .y2 = 4};
-    } else if (level <= 70) {
-        rect_coords = (lv_area_t){.x1 = 1, .y1 = 2, .x2 = 3, .y2 = 3};
-    } else if (level <= 90) {
-        rect_coords = (lv_area_t){.x1 = 1, .y1 = 2, .x2 = 3, .y2 = 2};
-    } else {
-        rect_draw = false;
-    }
+    int height = 0;
+    if (level > 90 && !usb_present) height = 0;
+    else if (level > 70) height = 1;
+    else if (level > 50) height = 2;
+    else if (level > 30) height = 3;
+    else if (level > 10) height = 4;
+    else height = 5;
 
-    if (rect_draw) {
-        // In LVGL 8.3, we draw directly to canvas or use a temporary layer
-        // Simplified for compatibility:
-        for(int x = rect_coords.x1; x <= rect_coords.x2; x++) {
-            for(int y = rect_coords.y1; y <= rect_coords.y2; y++) {
-                lv_canvas_set_px(canvas, x, y, lv_color_white());
-            }
+    // LVGL 8.3 compatible drawing: manual loop since canvas_draw_rect can be tricky with buffers
+    for(int x = 1; x <= 3; x++) {
+        for(int y = 2 + height; y <= 6; y++) {
+            lv_canvas_set_px(canvas, x, y, lv_color_white());
         }
     }
 }
 
 static void set_battery_symbol(lv_obj_t *widget, struct battery_state state) {
-    if (state.source >= ZMK_SPLIT_BLE_PERIPHERAL_COUNT + SOURCE_OFFSET) {
+    if (state.source >= MAX_BATTERY_SOURCES) {
         return;
     }
     
@@ -109,13 +98,8 @@ static void set_battery_symbol(lv_obj_t *widget, struct battery_state state) {
     snprintf(buf, sizeof(buf), "%u%%", state.level);
     lv_label_set_text(label, buf);
     
-    if (state.level > 0 || state.usb_present) {
-        lv_obj_clear_flag(symbol, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
-    } else {
-        lv_obj_add_flag(symbol, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
-    }
+    lv_obj_clear_flag(symbol, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
 }
 
 void battery_status_update_cb(struct battery_state state) {
@@ -161,11 +145,10 @@ ZMK_SUBSCRIPTION(widget_dongle_battery_status, zmk_usb_conn_state_changed);
 int zmk_widget_dongle_battery_status_init(struct zmk_widget_dongle_battery_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    // Ensure container is transparent/clean
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_opa(widget->obj, LV_OPA_TRANSP, 0);
 
-    for (int i = 0; i < ZMK_SPLIT_BLE_PERIPHERAL_COUNT + SOURCE_OFFSET; i++) {
+    for (int i = 0; i < MAX_BATTERY_SOURCES; i++) {
         lv_obj_t *image_canvas = lv_canvas_create(widget->obj);
         lv_obj_t *battery_label = lv_label_create(widget->obj);
 
@@ -176,6 +159,7 @@ int zmk_widget_dongle_battery_status_init(struct zmk_widget_dongle_battery_statu
         lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_12, 0);
         lv_obj_align_to(battery_label, image_canvas, LV_ALIGN_OUT_LEFT_MID, -2, 0);
 
+        // Initially hide until we get data
         lv_obj_add_flag(image_canvas, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(battery_label, LV_OBJ_FLAG_HIDDEN);
         
