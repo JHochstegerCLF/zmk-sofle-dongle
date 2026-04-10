@@ -1,47 +1,13 @@
 #include <zmk/display/status_screen.h>
 #include <zmk/display/widgets/layer_status.h>
 #include <zmk/display/widgets/output_status.h>
-#include <zmk/battery.h>
 #include <zmk/ble.h>
-#include <zmk/events/battery_state_changed.h>
-#include <zmk/event_manager.h>
 #include <lvgl.h>
-
-#include <zephyr/logging/log.h>
-LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 static struct zmk_widget_layer_status layer_widget;
 static struct zmk_widget_output_status output_widget;
 static lv_obj_t *profile_label;
 static lv_obj_t *left_bat_label;
-
-// Battery state storage
-static uint8_t left_bat = 0;
-
-static int battery_listener(const zmk_event_t *eh) {
-    const struct zmk_peripheral_battery_state_changed *pev = as_zmk_peripheral_battery_state_changed(eh);
-    if (pev != NULL) {
-        if (pev->source == 0) left_bat = pev->state_of_charge;
-        return 0;
-    }
-    return 0;
-}
-
-ZMK_LISTENER(battery_status, battery_listener);
-ZMK_SUBSCRIPTION(battery_status, zmk_peripheral_battery_state_changed);
-
-static void update_status(lv_timer_t *timer) {
-    // 1. Update BLE Profile
-    uint8_t profile = zmk_ble_active_profile_index();
-    char prof_buf[20];
-    snprintf(prof_buf, sizeof(prof_buf), "Profile: %u", profile + 1);
-    lv_label_set_text(profile_label, prof_buf);
-
-    // 2. Update Left Battery Label
-    char bat_buf[20];
-    snprintf(bat_buf, sizeof(bat_buf), "L: %u%%", left_bat);
-    lv_label_set_text(left_bat_label, bat_buf);
-}
 
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen;
@@ -55,20 +21,19 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_text_color(zmk_widget_output_status_obj(&output_widget), lv_color_white(), 0);
     lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_LEFT, 5, 5);
 
-    // 2. Single Battery Label (Center Top)
+    // 2. Battery Label (Center Top) - Static for now to test typing
     left_bat_label = lv_label_create(screen);
+    lv_label_set_text(left_bat_label, "L: --%");
     lv_obj_set_style_text_color(left_bat_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(left_bat_label, &lv_font_montserrat_12, 0);
     lv_obj_align(left_bat_label, LV_ALIGN_TOP_MID, 0, 5);
 
     // 3. BLE Profile Number (Center)
     profile_label = lv_label_create(screen);
+    lv_label_set_text(profile_label, "Profile: 1");
     lv_obj_set_style_text_color(profile_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(profile_label, &lv_font_montserrat_12, 0);
     lv_obj_align(profile_label, LV_ALIGN_CENTER, 0, -10);
-    
-    update_status(NULL);
-    lv_timer_create(update_status, 1000, NULL);
 
     // 4. Layer Status Widget (Bottom)
     zmk_widget_layer_status_init(&layer_widget, screen);
