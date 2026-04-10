@@ -46,24 +46,11 @@ struct battery_object {
     lv_obj_t *label;
 } battery_objects[MAX_BATTERY_SOURCES];
     
-// Hardcoded buffer size for 5x8 image to avoid "variably modified" error
-// LVGL 8.3 buffer size for 5x8 true color
 static lv_color_t battery_image_buffer[MAX_BATTERY_SOURCES][40];
 
 static void draw_battery(lv_obj_t *canvas, uint8_t level, bool usb_present) {
     lv_canvas_fill_bg(canvas, lv_color_black(), LV_OPA_COVER);
     
-    lv_draw_rect_dsc_t rect_fill_dsc;
-    lv_draw_rect_dsc_init(&rect_fill_dsc);
-    rect_fill_dsc.bg_color = lv_color_white();
-    rect_fill_dsc.bg_opa = LV_OPA_COVER;
-
-    if (usb_present) {
-        rect_fill_dsc.bg_opa = LV_OPA_TRANSP;
-        rect_fill_dsc.border_color = lv_color_white();
-        rect_fill_dsc.border_width = 1;
-    }
-
     // Top "nib" of the battery
     lv_canvas_set_px(canvas, 0, 0, lv_color_white());
     lv_canvas_set_px(canvas, 4, 0, lv_color_white());
@@ -76,7 +63,6 @@ static void draw_battery(lv_obj_t *canvas, uint8_t level, bool usb_present) {
     else if (level > 10) height = 4;
     else height = 5;
 
-    // LVGL 8.3 compatible drawing: manual loop since canvas_draw_rect can be tricky with buffers
     for(int x = 1; x <= 3; x++) {
         for(int y = 2 + height; y <= 6; y++) {
             lv_canvas_set_px(canvas, x, y, lv_color_white());
@@ -102,7 +88,8 @@ static void set_battery_symbol(lv_obj_t *widget, struct battery_state state) {
     lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
 }
 
-void battery_status_update_cb(struct battery_state state) {
+// Renamed to avoid collision with built-in ZMK widget
+void dongle_battery_status_update_cb(struct battery_state state) {
     struct zmk_widget_dongle_battery_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_battery_symbol(widget->obj, state); }
 }
@@ -124,7 +111,8 @@ static struct battery_state central_battery_status_get_state(const zmk_event_t *
     };
 }
 
-static struct battery_state battery_status_get_state(const zmk_event_t *eh) { 
+// Renamed to avoid collision
+static struct battery_state dongle_battery_status_get_state(const zmk_event_t *eh) { 
     if (as_zmk_peripheral_battery_state_changed(eh) != NULL) {
         return peripheral_battery_status_get_state(eh);
     } else {
@@ -133,7 +121,7 @@ static struct battery_state battery_status_get_state(const zmk_event_t *eh) {
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_dongle_battery_status, struct battery_state,
-                            battery_status_update_cb, battery_status_get_state)
+                            dongle_battery_status_update_cb, dongle_battery_status_get_state)
 
 ZMK_SUBSCRIPTION(widget_dongle_battery_status, zmk_peripheral_battery_state_changed);
 
@@ -159,7 +147,6 @@ int zmk_widget_dongle_battery_status_init(struct zmk_widget_dongle_battery_statu
         lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_12, 0);
         lv_obj_align_to(battery_label, image_canvas, LV_ALIGN_OUT_LEFT_MID, -2, 0);
 
-        // Initially hide until we get data
         lv_obj_add_flag(image_canvas, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(battery_label, LV_OBJ_FLAG_HIDDEN);
         
