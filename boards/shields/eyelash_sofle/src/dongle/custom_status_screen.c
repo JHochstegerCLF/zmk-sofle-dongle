@@ -5,7 +5,6 @@
 #include <zmk/ble.h>
 #include <zmk/events/battery_state_changed.h>
 #include <zmk/event_manager.h>
-#include <zmk/usb.h>
 #include <lvgl.h>
 
 #include <zephyr/logging/log.h>
@@ -14,32 +13,22 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 static struct zmk_widget_layer_status layer_widget;
 static struct zmk_widget_output_status output_widget;
 static lv_obj_t *profile_label;
-static lv_obj_t *heartbeat_label;
-static uint32_t heartbeat_val = 0;
+static lv_obj_t *left_bat_label;
 
 // Battery state storage
-static uint8_t dongle_bat = 0;
 static uint8_t left_bat = 0;
-static uint8_t right_bat = 0;
 
 static int battery_listener(const zmk_event_t *eh) {
     const struct zmk_peripheral_battery_state_changed *pev = as_zmk_peripheral_battery_state_changed(eh);
     if (pev != NULL) {
         if (pev->source == 0) left_bat = pev->state_of_charge;
-        else if (pev->source == 1) right_bat = pev->state_of_charge;
         return 0;
-    }
-
-    const struct zmk_battery_state_changed *ev = as_zmk_battery_state_changed(eh);
-    if (ev != NULL) {
-        dongle_bat = ev->state_of_charge;
     }
     return 0;
 }
 
 ZMK_LISTENER(battery_status, battery_listener);
 ZMK_SUBSCRIPTION(battery_status, zmk_peripheral_battery_state_changed);
-ZMK_SUBSCRIPTION(battery_status, zmk_battery_state_changed);
 
 static void update_status(lv_timer_t *timer) {
     // 1. Update BLE Profile
@@ -48,13 +37,10 @@ static void update_status(lv_timer_t *timer) {
     snprintf(prof_buf, sizeof(prof_buf), "Profile: %u", profile + 1);
     lv_label_set_text(profile_label, prof_buf);
 
-    // 2. Update Heartbeat
-    char hb_buf[20];
-    snprintf(hb_buf, sizeof(hb_buf), "Live: %u", heartbeat_val++);
-    lv_label_set_text(heartbeat_label, hb_buf);
-    
-    // Log battery data for debugging (no screen output yet)
-    LOG_INF("Bat D:%u%% L:%u%% R:%u%%", dongle_bat, left_bat, right_bat);
+    // 2. Update Left Battery Label
+    char bat_buf[20];
+    snprintf(bat_buf, sizeof(bat_buf), "L: %u%%", left_bat);
+    lv_label_set_text(left_bat_label, bat_buf);
 }
 
 lv_obj_t *zmk_display_status_screen() {
@@ -69,11 +55,11 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_text_color(zmk_widget_output_status_obj(&output_widget), lv_color_white(), 0);
     lv_obj_align(zmk_widget_output_status_obj(&output_widget), LV_ALIGN_TOP_LEFT, 5, 5);
 
-    // 2. Heartbeat (Center Top)
-    heartbeat_label = lv_label_create(screen);
-    lv_obj_set_style_text_color(heartbeat_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(heartbeat_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(heartbeat_label, LV_ALIGN_TOP_MID, 0, 5);
+    // 2. Single Battery Label (Center Top)
+    left_bat_label = lv_label_create(screen);
+    lv_obj_set_style_text_color(left_bat_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(left_bat_label, &lv_font_montserrat_12, 0);
+    lv_obj_align(left_bat_label, LV_ALIGN_TOP_MID, 0, 5);
 
     // 3. BLE Profile Number (Center)
     profile_label = lv_label_create(screen);
